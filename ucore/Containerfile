@@ -4,10 +4,10 @@ ARG IMAGE_VERSION="${IMAGE_VERSION:-stable}"
 ARG IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io/ublue-os}"
 ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-coreos-stable}"
 
-# FROMs for copying
-ARG AKMODS_COMMON="${IMAGE_REGISTRY}/akmods:${KERNEL_FLAVOR}-${FEDORA_VERSION}"
-ARG AKMODS_NVIDIA="${IMAGE_REGISTRY}/akmods-nvidia:${KERNEL_FLAVOR}-${FEDORA_VERSION}"
-ARG AKMODS_ZFS="${IMAGE_REGISTRY}/akmods-zfs:${KERNEL_FLAVOR}-${FEDORA_VERSION}"
+# FROMs for copying - always use upstream ublue-os akmods
+ARG AKMODS_COMMON="ghcr.io/ublue-os/akmods:${KERNEL_FLAVOR}-${FEDORA_VERSION}"
+ARG AKMODS_NVIDIA="ghcr.io/ublue-os/akmods-nvidia:${KERNEL_FLAVOR}-${FEDORA_VERSION}"
+ARG AKMODS_ZFS="ghcr.io/ublue-os/akmods-zfs:${KERNEL_FLAVOR}-${FEDORA_VERSION}"
 FROM ${AKMODS_COMMON} AS akmods-common
 FROM ${AKMODS_NVIDIA} AS akmods-nvidia
 FROM ${AKMODS_ZFS} AS akmods-zfs
