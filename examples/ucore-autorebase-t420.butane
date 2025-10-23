@@ -1,0 +1,162 @@
+variant: fcos
+version: 1.6.0
+passwd:
+  users:
+    - name: tj
+      ssh_authorized_keys:
+        - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC4agLso0Fv0OCfRju2QoZbhnZdJyEh6aIUIqTXNALED1NpjkcOdviQR8Qoyy7oI/jPZyzjDXKDhQJv+yXRGEtV+6jXZDM366emKFYdKf4FAYcq/92SDnH37EfwOP0BT/Unw1tWB7f4jSFnulEUX1fdnO3RBrJdlqwVZXLUtuA0mwvQsB2wnyWkFc6AIBMZ1d6IHUxFMC6qIDMeSFVhoD0OtpBpbspisdm4+EzT7En37tDFis4yi0kMHmkjlggR4XLV7Sk1LiNSiUd4Fi9/Y9a/W7nac4bEZgZnykBSX6POGEsF4CAW+kE4tnJ/qmfdZirdVZylG0MVrPen+GWdPF/6qXPSC1bwnDOHcmYJVgdTaOexX/4tYF9t4RGpKlIfkucN420HmQfQpgBvBpBHGxARkdCEXz0hFaS85Ubk+q+KbveqLBIZLIFiPOAkvzdgwcfFNoCcWL1mqxAbfu4KSNXdFgtivAQwubpn5oKQSGD12M/Fxp4rqjuuBi3DhvOrt1ibSxAUvEByX4tCaBMr/wAeY2ofKgB/kRy8HJgJQbQflFZLUPM8IzUoj+/OMMLFz48ldhlmCCPG4hpFlmGAwNlRwMoMJlh/HUbJA2PIyqWC7+LlsWyTpdiXfMdSIShVy4GuBoMGc+OXK+2F+HTFpv4rCZs0Wyx11UmUXrUvBQXX+Q== tj@fedora
+      password_hash: $6$p/IPTBCbNXayyYmK$f34NbNF3hNvnvpVXH/04faS//JQh2QpuE2lhfSHOeQXh3hxfPHHGDL7OItYa7iB0qS6M1w5jCJYbXAp5b.QEu0
+storage:
+  directories:
+    - path: /etc/ucore-autorebase
+      mode: 0754
+  files:
+    - path: /etc/NetworkManager/system-connections/wifi-guest.nmconnection
+      mode: 0600
+      contents:
+        inline: |
+          [connection]
+          id=wifi-guest
+          type=wifi
+          autoconnect=true
+          [wifi]
+          cloned-mac-address=permanent
+          mode=infrastructure
+          ssid=buttstuff
+          mac-address=a0:88:b4:81:5a:8c
+          [wifi-security]
+          auth-alg=open
+          key-mgmt=wpa-psk
+          psk=6b95f126e3db9e1a0cbe3710b11009e8b1715abf54295b677d47ffd9e1eb69d1
+          [ipv4]
+          method=auto
+    # T420 Optimizations - TrackPoint configuration
+    - path: /etc/udev/rules.d/10-trackpoint.rules
+      mode: 0644
+      contents:
+        inline: |
+          # Enable middle button scrolling on ThinkPad TrackPoint
+          SUBSYSTEM=="input", ATTRS{name}=="TPPS/2 IBM TrackPoint", ENV{ID_INPUT_POINTINGSTICK}="1"
+          ACTION=="add", SUBSYSTEM=="input", ATTRS{name}=="TPPS/2 IBM TrackPoint", ATTR{sensitivity}="200", ATTR{speed}="120"
+    # T420 Optimizations - Intel GPU tweaks for Sandy Bridge
+    - path: /etc/modprobe.d/i915.conf
+      mode: 0644
+      contents:
+        inline: |
+          # Intel Sandy Bridge GPU optimizations for T420
+          options i915 enable_fbc=1 enable_psr=0 modeset=1
+    # T420 Optimizations - Power management tuning
+    - path: /etc/sysctl.d/99-t420-tweaks.conf
+      mode: 0644
+      contents:
+        inline: |
+          # VM tuning for older hardware with limited RAM
+          vm.swappiness=10
+          vm.vfs_cache_pressure=50
+          # Network performance tweaks
+          net.core.netdev_max_backlog=16384
+          net.ipv4.tcp_fastopen=3
+    # T420 Optimizations - CPU frequency scaling for Sandy Bridge
+    - path: /etc/default/cpupower
+      mode: 0644
+      contents:
+        inline: |
+          # Sandy Bridge works best with ondemand or schedutil governor
+          governor='schedutil'
+          min_freq='800MHz'
+          max_freq='3.2GHz'
+systemd:
+  units:
+    # Install Wi-Fi support on first boot
+    - name: rpm-ostree-install-wifi.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Install Wi-Fi support (NetworkManager-wifi + firmware)
+        After=local-fs.target
+        Before=network-pre.target
+        ConditionPathExists=!/var/lib/%N.stamp
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/rpm-ostree install -y --allow-inactive NetworkManager-wifi iwlwifi-dvm-firmware
+        ExecStart=/bin/touch /var/lib/%N.stamp
+        ExecStart=/bin/systemctl --no-block reboot
+
+        [Install]
+        WantedBy=multi-user.target
+    # T420 Optimizations - Enable zram for better memory usage
+    - name: rpm-ostree-install-t420-packages.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Install T420 optimization packages (TLP, zram, etc)
+        After=rpm-ostree-install-wifi.service
+        Before=network-pre.target
+        ConditionPathExists=!/var/lib/%N.stamp
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/rpm-ostree install -y --allow-inactive tlp tlp-rdw powertop zram-generator-defaults
+        ExecStart=/bin/touch /var/lib/%N.stamp
+        ExecStart=/bin/systemctl --no-block reboot
+
+        [Install]
+        WantedBy=multi-user.target
+    # Enable TLP for battery management
+    - name: tlp.service
+      enabled: true
+    # Autorebase to unsigned uCore testing
+    - name: ucore-unsigned-autorebase.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=uCore autorebase to unsigned OCI and reboot
+        ConditionPathExists=!/etc/ucore-autorebase/unverified
+        ConditionPathExists=!/etc/ucore-autorebase/signed
+        After=network-online.target
+        Wants=network-online.target
+        [Service]
+        Type=oneshot
+        StandardOutput=journal+console
+        ExecStart=/usr/bin/rpm-ostree rebase --bypass-driver ostree-unverified-registry:ghcr.io/jstamagal/ucore:testing
+        ExecStart=/usr/bin/touch /etc/ucore-autorebase/unverified
+        ExecStart=/usr/bin/systemctl disable ucore-unsigned-autorebase.service
+        ExecStart=/usr/bin/systemctl reboot
+        [Install]
+        WantedBy=multi-user.target
+    # Autorebase to signed uCore testing
+    - name: ucore-signed-autorebase.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=uCore autorebase to signed OCI and reboot
+        ConditionPathExists=/etc/ucore-autorebase/unverified
+        ConditionPathExists=!/etc/ucore-autorebase/signed
+        After=network-online.target
+        Wants=network-online.target
+        [Service]
+        Type=oneshot
+        StandardOutput=journal+console
+        ExecStart=/usr/bin/rpm-ostree rebase --bypass-driver ostree-image-signed:docker://ghcr.io/jstamagal/ucore:testing
+        ExecStart=/usr/bin/touch /etc/ucore-autorebase/signed
+        ExecStart=/usr/bin/systemctl disable ucore-signed-autorebase.service
+        ExecStart=/usr/bin/systemctl reboot
+        [Install]
+        WantedBy=multi-user.target
+    # Load Intel WiFi driver
+    - name: iwlwifi-load.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Load Intel WiFi driver
+        After=network-pre.target
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/sbin/modprobe iwlwifi
+
+        [Install]
+        WantedBy=multi-user.target
