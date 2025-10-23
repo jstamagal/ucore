@@ -30,7 +30,7 @@ podman run --rm -v .:/data:z \
 echo "✓ ISO downloaded"
 
 # Find the downloaded ISO
-DOWNLOADED_ISO=$(ls fedora-coreos-*-live.x86_64.iso 2>/dev/null | head -n1)
+DOWNLOADED_ISO=$(ls fedora-coreos-*-live*.x86_64.iso 2>/dev/null | head -n1)
 if [[ -z "${DOWNLOADED_ISO}" ]]; then
     echo "❌ Error: Could not find downloaded ISO"
     exit 1
