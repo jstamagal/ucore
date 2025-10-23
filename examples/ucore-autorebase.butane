@@ -10,8 +10,45 @@ storage:
   directories:
     - path: /etc/ucore-autorebase
       mode: 0754
+  files:
+    - path: /etc/NetworkManager/system-connections/wifi-guest.nmconnection
+      mode: 0600
+      contents:
+        inline: |
+          [connection]
+          id=wifi-guest
+          type=wifi
+          autoconnect=true
+          [wifi]
+          cloned-mac-address=permanent
+          mode=infrastructure
+          ssid=guest
+          mac-address=ab:cd:01:02:03:04
+          [wifi-security]
+          auth-alg=open
+          key-mgmt=wpa-psk
+          psk=PASSWORD
+          [ipv4]
+          method=auto
 systemd:
   units:
+    - name: rpm-ostree-install-wifi.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Enable Wi-Fi
+        Wants=network-online.target
+        After=network-online.target
+        Before=zincati.service
+        ConditionPathExists=!/var/lib/%N.stamp
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/rpm-ostree install -y --allow-inactive NetworkManager-wifi iwlwifi-dvm-firmware
+        ExecStart=/bin/touch /var/lib/%N.stamp
+        ExecStart=/bin/systemctl --no-block reboot
+        [Install]
+        WantedBy=multi-user.target
     - name: ucore-unsigned-autorebase.service
       enabled: true
       contents: |
@@ -48,3 +85,11 @@ systemd:
         ExecStart=/usr/bin/systemctl reboot
         [Install]
         WantedBy=multi-user.target
+
+
+variant: fcos
+version: 1.6.0
+systemd:
+  units:
+    # Enable Wi-Fi in NetworkManager for an Intel wireless card
+
