@@ -143,7 +143,6 @@ jobs:
             podman pull ghcr.io/ublue-os/akmods:${{ env.KERNEL_FLAVOR }}-${{ env.FEDORA_VERSION }}
             podman pull ghcr.io/ublue-os/akmods-nvidia:${{ env.KERNEL_FLAVOR }}-${{ env.FEDORA_VERSION }}
             podman pull ghcr.io/ublue-os/akmods-zfs:${{ env.KERNEL_FLAVOR }}-${{ env.FEDORA_VERSION }}
-            podman pull ghcr.io/ublue-os/config:latest
 
       - name: Verify versions (image, kernel, zfs)
         shell: bash
