@@ -1,7 +1,6 @@
 ARG COREOS_VERSION="${COREOS_VERSION:-stable}"
 ARG FEDORA_VERSION="${FEDORA_VERSION:-40}"
 ARG IMAGE_VERSION="${IMAGE_VERSION:-stable}"
-ARG IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io/ublue-os}"
 ARG KERNEL_FLAVOR="${KERNEL_FLAVOR:-coreos-stable}"
 
 # FROMs for copying - always use upstream ublue-os akmods
