@@ -259,7 +259,6 @@ jobs:
             COREOS_VERSION=${{ inputs.coreos_version }}
             FEDORA_VERSION=${{ env.FEDORA_VERSION }}
             IMAGE_VERSION=${{ env.IMAGE_VERSION }}
-            IMAGE_REGISTRY=${{ env.IMAGE_REGISTRY }}
             KERNEL_FLAVOR=${{ env.KERNEL_FLAVOR }}
             PR_PREFIX=${{ env.PR_PREFIX }}
             NVIDIA_TAG=${{ matrix.nvidia_tag }}
